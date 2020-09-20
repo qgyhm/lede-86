@@ -30,12 +30,8 @@ on:
 env:
   REPO_URL: https://github.com/coolsnowwolf/lede
   REPO_BRANCH: master
-  FEEDS_CONF: feeds.conf.default
-  CONFIG_FILE: .config
-  DIY_P1_SH: diy-part1.sh
-  DIY_P2_SH: diy-part2.sh
   SSH_ACTIONS: true
-  UPLOAD_BIN_DIR: false
+  UPLOAD_BIN_DIR: true
   UPLOAD_FIRMWARE: true
   UPLOAD_COWTRANSFER: true
   UPLOAD_WETRANSFER: false
@@ -47,7 +43,7 @@ jobs:
     if: github.event.repository.owner.id == github.event.sender.id
 
     steps:
-    - name: 检查
+    - name: Checkout
       uses: actions/checkout@main
 
     - name: 初始化环境
@@ -70,12 +66,13 @@ jobs:
         git clone --depth 1 $REPO_URL -b $REPO_BRANCH openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
-    - name: 加载自定义feeds
+    - name: 下载插件
       run: |
-        [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
-        chmod +x $DIY_P1_SH
-        cd openwrt
-        $GITHUB_WORKSPACE/$DIY_P1_SH
+       cd openwrt/package
+       git clone https://github.com/kenzok8/openwrt-packages.git
+       git clone https://github.com/kenzok8/small.git
+       cdgit clone https://github.com/jerrykuku/lua-maxminddb.git
+       git clone https://github.com/jerrykuku/luci-app-vssr.git
 
     - name: 下载feeds
       run: cd openwrt && ./scripts/feeds update -a
@@ -83,13 +80,6 @@ jobs:
     - name: 安装feeds
       run: cd openwrt && ./scripts/feeds install -a
 
-    - name: 加载自定义配置
-      run: |
-        [ -e files ] && mv files openwrt/files
-        [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
-        chmod +x $DIY_P2_SH
-        cd openwrt
-        $GITHUB_WORKSPACE/$DIY_P2_SH
 
     - name: SSH 连接到 Actions
       uses: P3TERX/debugger-action@main
@@ -99,7 +89,6 @@ jobs:
       id: package
       run: |
         cd openwrt
-        make defconfig
         make download -j8
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
