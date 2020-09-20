@@ -47,7 +47,7 @@ jobs:
     if: github.event.repository.owner.id == github.event.sender.id
 
     steps:
-    - name: 结算
+    - name: 检查
       uses: actions/checkout@main
 
     - name: 初始化环境
